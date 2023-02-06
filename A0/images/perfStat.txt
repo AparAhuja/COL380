@@ -1,0 +1,238 @@
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 1 3
+1814.12 ms
+1687.55 ms
+1692.59 ms
+3 iterations of 1009072 items in 1001 ranges with 1 threads: Fastest took 1687.55 ms, Average was 1731.42 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 1 3':
+
+          5,287.06 msec task-clock:u              #    0.997 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             4,457      page-faults:u             #    0.843 K/sec                  
+   16,66,74,75,595      cycles:u                  #    3.153 GHz                    
+   28,18,37,22,883      instructions:u            #    1.69  insn per cycle         
+   10,07,71,05,135      branches:u                # 1905.994 M/sec                  
+      40,83,67,641      branch-misses:u           #    4.05% of all branches        
+
+       5.300951871 seconds time elapsed
+
+       5.270401000 seconds user
+       0.019978000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 4 3
+455.922 ms
+450.466 ms
+448.513 ms
+3 iterations of 1009072 items in 1001 ranges with 4 threads: Fastest took 448.513 ms, Average was 451.633 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 4 3':
+
+          5,423.31 msec task-clock:u              #    3.728 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             5,103      page-faults:u             #    0.941 K/sec                  
+   17,16,50,86,335      cycles:u                  #    3.165 GHz                    
+   28,25,20,17,606      instructions:u            #    1.65  insn per cycle         
+   10,09,66,09,961      branches:u                # 1861.706 M/sec                  
+      40,86,35,608      branch-misses:u           #    4.05% of all branches        
+
+       1.454939691 seconds time elapsed
+
+       5.414613000 seconds user
+       0.019921000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 8 3
+264.072 ms
+247.105 ms
+251.157 ms
+3 iterations of 1009072 items in 1001 ranges with 8 threads: Fastest took 247.105 ms, Average was 254.111 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 8 3':
+
+          6,021.39 msec task-clock:u              #    6.960 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,389      page-faults:u             #    0.563 K/sec                  
+   17,18,02,92,326      cycles:u                  #    2.853 GHz                    
+   28,34,32,33,310      instructions:u            #    1.65  insn per cycle         
+   10,12,26,56,996      branches:u                # 1681.116 M/sec                  
+      40,86,19,612      branch-misses:u           #    4.04% of all branches        
+
+       0.865102728 seconds time elapsed
+
+       6.023708000 seconds user
+       0.036675000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 16 3
+184.595 ms
+150.441 ms
+135.407 ms
+3 iterations of 1009072 items in 1001 ranges with 16 threads: Fastest took 135.407 ms, Average was 156.815 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 16 3':
+
+          6,709.70 msec task-clock:u              #   11.597 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,406      page-faults:u             #    0.508 K/sec                  
+   17,94,03,27,551      cycles:u                  #    2.674 GHz                    
+   28,51,67,64,684      instructions:u            #    1.59  insn per cycle         
+   10,17,22,06,323      branches:u                # 1516.045 M/sec                  
+      40,93,39,839      branch-misses:u           #    4.02% of all branches        
+
+       0.578553337 seconds time elapsed
+
+       6.716689000 seconds user
+       0.098302000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 12 3
+180.997 ms
+167.664 ms
+174.058 ms
+3 iterations of 1009072 items in 1001 ranges with 12 threads: Fastest took 167.664 ms, Average was 174.24 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 12 3':
+
+          6,166.78 msec task-clock:u              #    9.814 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,913      page-faults:u             #    0.635 K/sec                  
+   17,40,36,25,045      cycles:u                  #    2.822 GHz                    
+   28,40,28,12,121      instructions:u            #    1.63  insn per cycle         
+   10,13,96,63,448      branches:u                # 1644.239 M/sec                  
+      40,84,97,106      branch-misses:u           #    4.03% of all branches        
+
+       0.628342345 seconds time elapsed
+
+       6.169422000 seconds user
+       0.040647000 seconds sys
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 24 3
+137.257 ms
+127.649 ms
+120.979 ms
+3 iterations of 1009072 items in 1001 ranges with 24 threads: Fastest took 120.979 ms, Average was 128.628 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 24 3':
+
+          7,229.71 msec task-clock:u              #   14.822 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,953      page-faults:u             #    0.547 K/sec                  
+   19,07,78,41,695      cycles:u                  #    2.639 GHz                    
+   28,77,07,75,291      instructions:u            #    1.51  insn per cycle         
+   10,24,47,51,168      branches:u                # 1417.035 M/sec                  
+      41,14,42,147      branch-misses:u           #    4.02% of all branches        
+
+       0.487755964 seconds time elapsed
+
+       7.218505000 seconds user
+       0.120898000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 28 3
+132.406 ms
+115.658 ms
+123.835 ms
+3 iterations of 1009072 items in 1001 ranges with 28 threads: Fastest took 115.658 ms, Average was 123.966 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 28 3':
+
+          8,014.65 msec task-clock:u              #   16.542 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,966      page-faults:u             #    0.495 K/sec                  
+   20,69,83,12,054      cycles:u                  #    2.583 GHz                    
+   28,85,70,31,598      instructions:u            #    1.39  insn per cycle         
+   10,26,93,81,291      branches:u                # 1281.327 M/sec                  
+      41,75,74,320      branch-misses:u           #    4.07% of all branches        
+
+       0.484497397 seconds time elapsed
+
+       8.017814000 seconds user
+       0.115589000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 32 3
+131.638 ms
+121.15 ms
+115.994 ms
+3 iterations of 1009072 items in 1001 ranges with 32 threads: Fastest took 115.994 ms, Average was 122.927 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 32 3':
+
+          9,368.10 msec task-clock:u              #   19.949 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,979      page-faults:u             #    0.425 K/sec                  
+   23,05,11,47,916      cycles:u                  #    2.461 GHz                    
+   28,93,21,28,090      instructions:u            #    1.26  insn per cycle         
+   10,29,08,23,330      branches:u                # 1098.497 M/sec                  
+      42,50,42,453      branch-misses:u           #    4.13% of all branches        
+
+       0.469603170 seconds time elapsed
+
+       9.347051000 seconds user
+       0.190676000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 63 3
+125.983 ms
+113.339 ms
+111.021 ms
+3 iterations of 1009072 items in 1001 ranges with 63 threads: Fastest took 111.021 ms, Average was 116.781 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 63 3':
+
+         11,142.21 msec task-clock:u              #   24.381 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             4,020      page-faults:u             #    0.361 K/sec                  
+   25,34,55,14,440      cycles:u                  #    2.275 GHz                    
+   28,18,64,90,323      instructions:u            #    1.11  insn per cycle         
+   10,07,76,74,051      branches:u                #  904.459 M/sec                  
+      44,05,44,199      branch-misses:u           #    4.37% of all branches        
+
+       0.456997319 seconds time elapsed
+
+      11.157145000 seconds user
+       0.195051000 seconds sys
+
+
+[cs1190465@klogin01 ~/COL380/A0]
+$ perf stat ./classify rfile dfile 1009072 20 3
+168.532 ms
+144.41 ms
+120.653 ms
+3 iterations of 1009072 items in 1001 ranges with 20 threads: Fastest took 120.653 ms, Average was 144.531 ms
+
+ Performance counter stats for './classify rfile dfile 1009072 20 3':
+
+          7,230.74 msec task-clock:u              #   13.357 CPUs utilized          
+                 0      context-switches:u        #    0.000 K/sec                  
+                 0      cpu-migrations:u          #    0.000 K/sec                  
+             3,923      page-faults:u             #    0.543 K/sec                  
+   18,75,56,72,345      cycles:u                  #    2.594 GHz                    
+   28,63,62,85,885      instructions:u            #    1.53  insn per cycle         
+   10,20,63,40,741      branches:u                # 1411.522 M/sec                  
+      41,15,62,384      branch-misses:u           #    4.03% of all branches        
+
+       0.541333624 seconds time elapsed
+
+       7.194723000 seconds user
+       0.145288000 seconds sys
+
