@@ -22,14 +22,6 @@ bool compareColumn(Block block1, Block block2){
     return block1.col < block2.col;
 }
 
-// Function to get the size of a binary file in bytes
-int getFileSize(string& fileName){
-    ifstream inFile(fileName, ios::binary);
-    inFile.seekg(0, ios::end);
-    int fileSize = inFile.tellg();
-    return fileSize;
-}
-
 // Function to read a sparse matrix stored in a binary file
 void readMatrix(string& fileName, int& numRows, int& blockSize, vector<vector<Block>> &rowBlocks, int outMatrix = 0) {
     int k = 0;
@@ -37,18 +29,13 @@ void readMatrix(string& fileName, int& numRows, int& blockSize, vector<vector<Bl
     file.read(reinterpret_cast<char*>(&numRows), 4);
     file.read(reinterpret_cast<char*>(&blockSize), 4);
     file.read(reinterpret_cast<char*>(&k), 4);
-    int actualNumBlocks = (getFileSize(fileName) - 12)/((1 + outMatrix)*blockSize*blockSize + 8);
-
-    // Check if the number of blocks in the header matches the actual number of blocks in the file
-    if(actualNumBlocks != k)
-        cout << "read_matrix(): k doesn't match. actual-k = " << actualNumBlocks << ", k = " << k << endl;
     
     rowBlocks.resize(numRows/blockSize);
     int size = blockSize * blockSize;
     int rowIndex = 0, colIndex = 0;
 
     // Loop over all blocks in the file
-    for (int i = 0; i < actualNumBlocks; i++) {
+    for (int i = 0; i < k; i++) {
         file.read(reinterpret_cast<char*>(&rowIndex), 4);
         file.read(reinterpret_cast<char*>(&colIndex), 4);
         Block block, blockTranspose;
@@ -76,8 +63,10 @@ void readMatrix(string& fileName, int& numRows, int& blockSize, vector<vector<Bl
     }
 
     // Sort the blocks in each row
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel
+    #pragma omp single
     for(int i = 0; i < rowBlocks.size(); i++){
+        #pragma omp task
         sort(rowBlocks[i].begin(), rowBlocks[i].end(), compareColumn);
     }
     file.close();
@@ -125,6 +114,8 @@ void compareOutputFiles(string& file1, string& file2){
 
     // Read the values for n, m, and k from both files
     int n1 = 0, n2 = 0, m1 = 0, m2 = 0, k1 = 0, k2 = 0;
+
+    // Read n values
     in_file1.read(reinterpret_cast<char*>(&n1), 4);
     in_file2.read(reinterpret_cast<char*>(&n2), 4);
 
@@ -134,7 +125,7 @@ void compareOutputFiles(string& file1, string& file2){
         return;
     }
 
-    // Read m and k values
+    // Read m values
     in_file1.read(reinterpret_cast<char*>(&m1), 4);
     in_file2.read(reinterpret_cast<char*>(&m2), 4);
 
@@ -143,6 +134,8 @@ void compareOutputFiles(string& file1, string& file2){
         cout << "compare_sparse_matrices(): m values not equal. m1 = " << m1 << ", m2 = " << m2 << ".\n";
         return;
     }
+
+    // Read k values
     in_file1.read(reinterpret_cast<char*>(&k1), 4);
     in_file2.read(reinterpret_cast<char*>(&k2), 4);
 
@@ -151,12 +144,6 @@ void compareOutputFiles(string& file1, string& file2){
         cout << "compare_sparse_matrices(): k values not equal. k1 = " << k1 << ", k2 = " << k2 << ".\n";
         return;
     }
-
-    // Calculate the actual number of blocks k using the file size
-    int actual_k1 = (getFileSize(file1) - 12)/(2*m1*m1+8);
-    int actual_k2 = (getFileSize(file2) - 12)/(2*m2*m2+8);
-    k1 = actual_k1;
-    k2 = actual_k2;
 
     // Calculate the block size
     int size = m1 * m1;
@@ -199,12 +186,16 @@ void compareOutputFiles(string& file1, string& file2){
     }
 
     // Sort the blocks in each row
-    #pragma omp parallel for schedule(dynamic)
-    for(int i = 0; i < rowBlocks1.size(); i++)
-        sort(rowBlocks1[i].begin(), rowBlocks1[i].end(), compareColumn);
-    #pragma omp parallel for schedule(dynamic)
-    for(int i = 0; i < rowBlocks2.size(); i++)
-        sort(rowBlocks2[i].begin(), rowBlocks2[i].end(), compareColumn);
+    #pragma omp parallel
+    #pragma omp single
+    {
+        for(int i = 0; i < rowBlocks1.size(); i++)
+            #pragma omp task
+            sort(rowBlocks1[i].begin(), rowBlocks1[i].end(), compareColumn);
+        for(int i = 0; i < rowBlocks2.size(); i++)
+            #pragma omp task
+            sort(rowBlocks2[i].begin(), rowBlocks2[i].end(), compareColumn);
+    }
     
     // Compare the matrices in the files
     compareMatrices(rowBlocks1, rowBlocks2);
@@ -230,59 +221,64 @@ void squareMatrix(string& file_name, vector<vector<Block>> &rowBlocks, int n, in
     file.write(reinterpret_cast<const char*>(&m), 4);
     file.write(reinterpret_cast<const char*>(&k), 4);
     
-    // Parallelize the outer loop
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < n/m; i++) {
-        for(int j = i; j < n/m; j++){
-            int colIndex = 0, max_rowIndex = rowBlocks[i].size(), max_colIndex = rowBlocks[j].size();
-            if(max_colIndex == 0 || max_colIndex == 0) {
-                // Skip if either row or column does not have any data
-                continue;
-            }
-            // Flag to check if any multiplication was performed
-            bool flag = false;
-            Block b;
-            b.row = i;
-            b.col = j;
-            b.data = vector<int> (m*m, 0);
+    omp_lock_t writelock;
+    omp_init_lock(&writelock);
 
-            // Loop through the blocks in the row and column
-            for(int rowIndex = 0; rowIndex < max_rowIndex; rowIndex++){
-                while(colIndex < max_colIndex && rowBlocks[j][colIndex].col < rowBlocks[i][rowIndex].col){
-                    colIndex++;
+    // Parallelize the outer loop
+    #pragma omp parallel
+    #pragma omp single
+    for (int i = 0; i < n/m; i++) {
+        #pragma omp task
+        {
+            for(int j = i; j < n/m; j++){
+                int colIndex = 0, max_rowIndex = rowBlocks[i].size(), max_colIndex = rowBlocks[j].size();
+                if(max_colIndex == 0 || max_colIndex == 0) {
+                    // Skip if either row or column does not have any data
+                    continue;
                 }
-                if(colIndex == max_colIndex){
-                    // No matching block found in the column
-                    break;
-                }
-                if(rowBlocks[j][colIndex].col == rowBlocks[i][rowIndex].col){
-                    flag = true;
-                    // Perform matrix multiplication
-                    matrix_mult(b.data, rowBlocks[i][rowIndex].data, rowBlocks[j][colIndex].data, m);
-                }
-            }
-            if(flag) {
-                bool is_submatrix_nonzero = false;
-                // Check if submatrix is non-zero
-                for (auto& data : b.data) {
-                    if (data != 0) {
-                        is_submatrix_nonzero = true;
+                // Flag to check if any multiplication was performed
+                bool flag = false;
+                Block b;
+                b.row = i;
+                b.col = j;
+                b.data = vector<int> (m*m, 0);
+
+                // Loop through the blocks in the row and column
+                for(int rowIndex = 0; rowIndex < max_rowIndex; rowIndex++){
+                    while(colIndex < max_colIndex && rowBlocks[j][colIndex].col < rowBlocks[i][rowIndex].col){
+                        colIndex++;
+                    }
+                    if(colIndex == max_colIndex){
+                        // No matching block found in the column
                         break;
                     }
+                    if(rowBlocks[j][colIndex].col == rowBlocks[i][rowIndex].col){
+                        flag = true;
+                        // Perform matrix multiplication
+                        matrix_mult(b.data, rowBlocks[i][rowIndex].data, rowBlocks[j][colIndex].data, m);
+                    }
                 }
-                if(is_submatrix_nonzero){
-                    #pragma omp task
-                    {
-                        #pragma omp critical
+                if(flag) {
+                    bool is_submatrix_nonzero = false;
+                    // Check if submatrix is non-zero
+                    for (auto& data : b.data) {
+                        if (data != 0) {
+                            is_submatrix_nonzero = true;
+                            break;
+                        }
+                    }
+                    if(is_submatrix_nonzero){
+                        #pragma omp task
                         {
-                            if(b.row != b.col) k+=2;
-                            else {k++;}
+                            omp_set_lock(&writelock);
+                            k++;
                             file.write(reinterpret_cast<const char*>(&b.row), 4);
                             file.write(reinterpret_cast<const char*>(&b.col), 4);
                             for(auto& data : b.data){
                                 data = min(data, MAX_VAL);
                                 file.write(reinterpret_cast<const char*>(&data), 2);
                             }
+                            omp_unset_lock(&writelock);
                         }
                     }
                 }
