@@ -7,7 +7,7 @@
 #include <omp.h>
 #include "library.hpp"
 
-using namespace std;
+using namespace std; 
 using namespace std::chrono;
 
 // Structure to store a block of the sparse matrix
@@ -53,7 +53,7 @@ void readMatrix(string& fileName, int& numRows, int& blockSize, vector<vector<Bl
             int data = 0;
             file.read(reinterpret_cast<char*>(&data), 1 + outMatrix);
             block.data[i] = data;
-            if(rowIndex != colIndex)
+            if(rowIndex != colIndex) 
                 blockTranspose.data[blockSize*(i%blockSize) + i/blockSize] = data;
         }
         rowBlocks[rowIndex].push_back(block);
@@ -68,6 +68,26 @@ void readMatrix(string& fileName, int& numRows, int& blockSize, vector<vector<Bl
     for(int i = 0; i < rowBlocks.size(); i++){
         #pragma omp task
         sort(rowBlocks[i].begin(), rowBlocks[i].end(), compareColumn);
+    }
+    file.close();
+}
+
+
+void writeMatrix(string file_name, int n, int m, int k, vector<vector<Block>> &rowBlocks, int outMatrix = 0) {
+    fstream file(file_name, ios::binary);
+    file.write(reinterpret_cast<const char*>(&n), 4);
+    file.write(reinterpret_cast<const char*>(&m), 4);
+    file.write(reinterpret_cast<const char*>(&k), 4);
+    for (auto& row : rowBlocks) {
+        for (auto& block : row) {
+            k++;
+            file.write(reinterpret_cast<const char*>(&block.row), 4);
+            file.write(reinterpret_cast<const char*>(&block.col), 4);
+            for(auto& data : block.data){
+                data = min(data, MAX_VAL);
+                file.write(reinterpret_cast<const char*>(&data), 1 + outMatrix);
+            }
+        }
     }
     file.close();
 }
@@ -205,110 +225,93 @@ void compareOutputFiles(string& file1, string& file2){
 
 // Function to calculate the result of block-matrix multiplacation
 void matrix_mult(vector<int> &result, vector<int> &matrixA, vector<int>&matrixB, int m){
+    
+    #pragma omp parallel
+    #pragma omp single
     for (int i = 0; i < m; i++) {
+        #pragma omp task
+        {   
         for (int k = 0; k < m; k++) {
             for (int j = 0; j < m; j++) {
                 result[i*m + j] = Outer(Inner(matrixA[i*m + k], matrixB[k + j*m]), result[i*m + j]);
             }
         }
+        }
     }
 }
 
-void squareMatrix(string& file_name, vector<vector<Block>> &rowBlocks, int n, int m) {
-    int k = 0;
-    ofstream file(file_name, ios::binary);
-    file.write(reinterpret_cast<const char*>(&n), 4);
-    file.write(reinterpret_cast<const char*>(&m), 4);
-    file.write(reinterpret_cast<const char*>(&k), 4);
-    
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
-
+void squareMatrix(vector<vector<Block>> &rowBlocks, vector<vector<Block>> &result, int n, int m, int &k) {
+    result.resize(n/m);
     // Parallelize the outer loop
-    #pragma omp parallel
-    #pragma omp single
     for (int i = 0; i < n/m; i++) {
-        #pragma omp task
-        {
-            for(int j = i; j < n/m; j++){
-                int colIndex = 0, max_rowIndex = rowBlocks[i].size(), max_colIndex = rowBlocks[j].size();
-                if(max_colIndex == 0 || max_colIndex == 0) {
-                    // Skip if either row or column does not have any data
-                    continue;
-                }
-                // Flag to check if any multiplication was performed
-                bool flag = false;
-                Block b;
-                b.row = i;
-                b.col = j;
-                b.data = vector<int> (m*m, 0);
+        vector<Block> blocks;
+        for(int j = i; j < n/m; j++){
+            int colIndex = 0, max_rowIndex = rowBlocks[i].size(), max_colIndex = rowBlocks[j].size();
+            if(max_colIndex == 0 || max_colIndex == 0) {
+                // Skip if either row or column does not have any data
+                continue;
+            }
+            // Flag to check if any multiplication was performed
+            bool flag = false;
+            Block b;
+            b.row = i;
+            b.col = j;
+            b.data = vector<int> (m*m, 0);
 
-                // Loop through the blocks in the row and column
-                for(int rowIndex = 0; rowIndex < max_rowIndex; rowIndex++){
-                    while(colIndex < max_colIndex && rowBlocks[j][colIndex].col < rowBlocks[i][rowIndex].col){
-                        colIndex++;
-                    }
-                    if(colIndex == max_colIndex){
-                        // No matching block found in the column
+            // Loop through the blocks in the row and column
+            for(int rowIndex = 0; rowIndex < max_rowIndex; rowIndex++){
+                while(colIndex < max_colIndex && rowBlocks[j][colIndex].col < rowBlocks[i][rowIndex].col){
+                    colIndex++;
+                }
+                if(colIndex == max_colIndex){
+                    // No matching block found in the column
+                    break;
+                }
+                if(rowBlocks[j][colIndex].col == rowBlocks[i][rowIndex].col){
+                    flag = true;
+                    // Perform matrix multiplication
+                    matrix_mult(b.data, rowBlocks[i][rowIndex].data, rowBlocks[j][colIndex].data, m);
+                }
+            }
+            if(flag) {
+                bool is_submatrix_nonzero = false;
+                // Check if submatrix is non-zero
+                for (auto& data : b.data) {
+                    if (data != 0) {
+                        is_submatrix_nonzero = true; 
                         break;
                     }
-                    if(rowBlocks[j][colIndex].col == rowBlocks[i][rowIndex].col){
-                        flag = true;
-                        // Perform matrix multiplication
-                        matrix_mult(b.data, rowBlocks[i][rowIndex].data, rowBlocks[j][colIndex].data, m);
-                    }
                 }
-                if(flag) {
-                    bool is_submatrix_nonzero = false;
-                    // Check if submatrix is non-zero
-                    for (auto& data : b.data) {
-                        if (data != 0) {
-                            is_submatrix_nonzero = true;
-                            break;
-                        }
-                    }
-                    if(is_submatrix_nonzero){
-                        #pragma omp task
-                        {
-                            omp_set_lock(&writelock);
-                            k++;
-                            file.write(reinterpret_cast<const char*>(&b.row), 4);
-                            file.write(reinterpret_cast<const char*>(&b.col), 4);
-                            for(auto& data : b.data){
-                                data = min(data, MAX_VAL);
-                                file.write(reinterpret_cast<const char*>(&data), 2);
-                            }
-                            omp_unset_lock(&writelock);
-                        }
-                    }
+                if(is_submatrix_nonzero){
+                    #pragma omp critical
+                        k++;
+                    blocks.push_back(b);
                 }
             }
         }
+        result[i] = blocks;
     }
-    file.close();
-    fstream update_k(file_name, ios::binary | ios::in | ios::out);
-    update_k.write(reinterpret_cast<const char*>(&n), 4);
-    update_k.write(reinterpret_cast<const char*>(&m), 4);
-    update_k.write(reinterpret_cast<const char*>(&k), 4);
-    update_k.close();
 }
 
 void squareMatrixWrapper(string input_matrix_file, string output_matrix_file, string expected_output_file) {
-    int num_rows = 0, num_cols = 0;
+    int num_rows = 0, num_cols = 0, num_blks = 0;
     auto start_time = high_resolution_clock::now();  // record start time
 
     // Read input matrix from file and store blocks in a vector of vectors
-    vector<vector<Block>> row_blocks;
+    vector<vector<Block>> row_blocks, result;
     readMatrix(input_matrix_file, num_rows, num_cols, row_blocks);
 
+    // Compute the square matrix and store it in result
+    squareMatrix(row_blocks, result, num_rows, num_cols, num_blks);
+
     // Compute the square matrix and store it in the output file
-    squareMatrix(output_matrix_file, row_blocks, num_rows, num_cols);
+    writeMatrix(output_matrix_file, num_rows, num_cols, num_blks, row_blocks, 1);
 
     auto end_time = high_resolution_clock::now();  // record end time
     auto total_time = duration_cast<milliseconds>(end_time - start_time).count();
 
     // Compare the output matrix to the expected output
-    compareOutputFiles(output_matrix_file, expected_output_file);
+    // compareOutputFiles(output_matrix_file, expected_output_file);
 
     cout << "Total Time Taken: " << total_time << "ms" << endl;
 }
@@ -317,12 +320,15 @@ void squareMatrixWrapper(string input_matrix_file, string output_matrix_file, st
 int main(int argc, char** argv) {
     int num_threads = 8;
     string input_file = "data/input2";
-    string my_output_file = "data/myoutput";
+    string my_output_file = "data/myoutput4";
     string real_output_file = "data/output2";
 
     // Check if input file and output file names are provided
     if (argc > 1) {
         input_file = argv[1];
+    }
+
+    if (argc > 2) {
         my_output_file = argv[2];
     }
 
