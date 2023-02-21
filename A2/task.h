@@ -1,12 +1,16 @@
 #include <vector>
 #include <string>
+#include <iostream>
 
-class Task {
-    public:
-        Task(Graph& g, int startk, int endk, bool verbose);
-        void run();
-    private:
-        Graph& graph;
-        int startk, endk;
-        bool verbose;
+struct Task {
+    Graph& graph;
+    int startk, endk;
+    bool verbose;
+
+    Task(Graph& g, int startk, int endk, bool verbose): graph(g), startk(startk), endk(endk), verbose(verbose) {}
+
+    void run(){
+
+    }
+        
 };
