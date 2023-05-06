@@ -2,14 +2,14 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
 struct Graph {
-
     int n, m;
-    ifstream inputfile, headerfile;
     vector<int> offsets;
+    vector<int> degrees;
 
     Graph(){
         n = 0;
@@ -17,17 +17,27 @@ struct Graph {
     }
 
     void read_graph(string inputpath, string headerpath){
+        ifstream headerfile, inputfile;
         inputfile.open(inputpath, ios::binary);
         headerfile.open(headerpath, ios::binary);
         inputfile.read(reinterpret_cast<char*>(&n), 4);
         inputfile.read(reinterpret_cast<char*>(&m), 4);
         offsets.resize(n);
-        for(auto &offset: offsets)
-            headerfile.read(reinterpret_cast<char*>(&offset), 4);
+        degrees.resize(n);
+        for(int i = 0; i < n; i++){
+            int degree = 0;
+            headerfile.read(reinterpret_cast<char*>(&offsets[i]), 4);
+            inputfile.seekg(offsets[i] + 4);
+            inputfile.read(reinterpret_cast<char*>(&degree), 4);
+            degrees[i] = degree;
+        }
         headerfile.close();
+        inputfile.close();
     }
 
-    void print_graph(){
+    void print_graph(string inputpath){
+        ifstream inputfile;
+        inputfile.open(inputpath, ios::binary);
         cout << "n = " << n << endl;
         cout << "m = " << m << endl;
         for (int i = 0; i < n; i++) {
@@ -42,5 +52,6 @@ struct Graph {
                 cout << nbr << " ";
             }cout << endl;
         }
+        inputfile.close();
     }
 };

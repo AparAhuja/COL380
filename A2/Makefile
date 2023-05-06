@@ -1,11 +1,16 @@
-# module load mpi
+# test_number = 8
+# no_of_proc = 8
+# startk = 2
+# endk = 6
+
 main:
-	mpic++ -std=c++11 main.cpp -o main.out
-	mpirun -np 1 ./main.out --taskid=1 --inputpath=/home/cse/btech/cs1190465/COL380/A2/test0/test-input-0.gra --headerpath=/home/cse/btech/cs1190465/COL380/A2/test0/test-header-0.dat --outputpath=test0/output0.txt --startk=1 --endk=12 --verbose=1
-	
-rough:
-	mpic++ -std=c++11 rough.cpp -o rough.out
-	mpirun -np 4 ./rough.out
+	mpic++ -std=c++17 -O3 -march=native main.cpp -o a2
+# mpirun -np $(no_of_proc) ./main.out --taskid=1 --inputpath=test$(test_number)/test-input-$(test_number).gra --headerpath=test$(test_number)/test-header-$(test_number).dat --outputpath=outputs/myoutput.txt --startk=$(startk) --endk=$(endk) --verbose=0
+# mpirun -np 4 ./a2 --taskid=1 --inputpath=test2/test-input-2.gra --headerpath=test2/test-header-2.dat --outputpath=outputs/myoutput.txt --startk=1 --endk=10 --verbose=0
+
+data:
+	g++ -std=c++17 datagen.cpp -o datagen.out
+	./datagen.out
 
 clean:
 	rm *.out
